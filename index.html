@@ -325,12 +325,24 @@
     border-color:var(--red);
     box-shadow:0 20px 60px rgba(217,67,46,0.32);
   }
-  .proj-card::before{
-    content:'';
-    position:absolute; inset:0;
-    background:linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.88) 92%);
-    z-index:0;
-    transition:background .35s ease;
+ .proj-card .preview-frame{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  border:0;
+  z-index:0;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .35s ease;
+}
+.proj-card:hover .preview-frame{ opacity:1; }
+.proj-card::before{
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.88) 92%);
+  z-index:1;
+  transition:background .35s ease;
+  pointer-events:none;
+}
   }
   .proj-card:hover::before{
     background:linear-gradient(180deg, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.94) 92%);
@@ -344,19 +356,21 @@
   .portfolio-grid .row2{ grid-column: span 1; }
  
   .proj-card .play{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:56px; height:56px; border-radius:50%;
-    background:rgba(255,255,255,0.92);
-    display:flex; align-items:center; justify-content:center;
-    z-index:1;
-    transition:transform .3s cubic-bezier(.22,1,.36,1), background .3s ease;
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:56px; height:56px; border-radius:50%;
+  background:rgba(255,255,255,0.92);
+  display:flex; align-items:center; justify-content:center;
+  z-index:2;
+  transition:transform .3s cubic-bezier(.22,1,.36,1), background .3s ease, opacity .3s ease;
+}
+.proj-card:hover .play{ transform:translate(-50%,-50%) scale(1.15); background:#fff; opacity:0; }
   }
   .proj-card:hover .play{ transform:translate(-50%,-50%) scale(1.15); background:#fff; }
   .proj-card .play svg{ width:18px; height:18px; margin-left:2px; }
  
   .proj-body{
     position:relative;
-    z-index:1;
+    z-index:2;
     padding:26px 26px 24px;
     width:100%;
   }
@@ -536,7 +550,7 @@
   <div class="filmstrip right" aria-hidden="true"></div>
 
   <div class="kicker"><span class="dot" aria-hidden="true"></span> AI Video Creator</div>
-  <h1>Maksym<br><span>AI Video Creator</span></h1>
+  <h1>Maksym —<br><span>AI Video Creator</span></h1>
   <p class="hero-sub">Знімаю, монтую та оживляю історії за допомогою нейромереж — від ідеї до кінематографічного кадру.</p>
 
   <a class="cta-pill" href="#work">
@@ -668,7 +682,7 @@
 <footer id="contact">© 2026 Maksym. AI Video Creator.</footer>
 
 <script>
-  const navToggle = document.getElementById('navToggle');
+const navToggle = document.getElementById('navToggle');
   const mobileMenu = document.getElementById('mobileMenu');
   if (navToggle && mobileMenu) {
     navToggle.addEventListener('click', () => {
@@ -682,14 +696,12 @@
       });
     });
   }
-
+ 
   const videoModal = document.getElementById('videoModal');
   const modalPlayer = document.getElementById('modalPlayer');
   const modalClose = document.getElementById('modalClose');
-  const modalFrame = document.querySelector('.modal-frame');
-
-  function openVideoModal(ytId, ratio){
-    modalFrame.classList.toggle('vertical', ratio === '9:16');
+ 
+  function openVideoModal(ytId){
     modalPlayer.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0" title="Project video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
     videoModal.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -699,24 +711,40 @@
     modalPlayer.innerHTML = '';
     document.body.style.overflow = '';
   }
-
+ 
   document.querySelectorAll('.proj-card[data-yt]').forEach(card => {
-    card.addEventListener('click', () => openVideoModal(card.dataset.yt, card.dataset.ratio));
+    card.addEventListener('click', () => openVideoModal(card.dataset.yt));
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
     card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openVideoModal(card.dataset.yt, card.dataset.ratio); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openVideoModal(card.dataset.yt); }
+    });
+ 
+    let hoverTimer;
+    card.addEventListener('mouseenter', () => {
+      hoverTimer = setTimeout(() => {
+        const id = card.dataset.yt;
+        const iframe = document.createElement('iframe');
+        iframe.className = 'preview-frame';
+        iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}&modestbranding=1&playsinline=1`;
+        iframe.allow = 'autoplay; encrypted-media';
+        card.appendChild(iframe);
+      }, 250);
+    });
+    card.addEventListener('mouseleave', () => {
+      clearTimeout(hoverTimer);
+      const iframe = card.querySelector('.preview-frame');
+      if (iframe) iframe.remove();
     });
   });
-
+ 
   modalClose.addEventListener('click', closeVideoModal);
   videoModal.addEventListener('click', (e) => { if (e.target === videoModal) closeVideoModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeVideoModal(); });
-
   const perspectiveWrap = document.getElementById('toolsPerspective');
   const grid = document.getElementById('toolsGrid');
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
+ 
   if (perspectiveWrap && grid && !prefersReduced) {
     perspectiveWrap.addEventListener('mousemove', (e) => {
       const rect = perspectiveWrap.getBoundingClientRect();
