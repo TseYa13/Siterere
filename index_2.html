@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maksym — AI Video Creator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0908;
+    --bg-2: #131110;
+    --bg-3: #1b1815;
+    --gold: #e8c27a;
+    --gold-soft: #f0d9a8;
+    --gold-dim: #8a6c3d;
+    --red-dim: #7a2a20;
+    --text: #f3efe6;
+    --text-mute: #a39d8f;
+    --text-faint: #6b665c;
+    --line: rgba(243,239,230,0.08);
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    overflow-x:hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; transition-duration:0.01ms !important; scroll-behavior:auto !important; }
+  }
+
+  a{ color:inherit; text-decoration:none; }
+
+  .wrap{
+    max-width:1280px;
+    margin:0 auto;
+    padding:0 40px;
+  }
+
+  /* ============ NAV ============ */
+  nav{
+    position:fixed;
+    top:0; left:0; right:0;
+    z-index:100;
+    padding:22px 40px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    backdrop-filter:blur(10px);
+    background:linear-gradient(to bottom, rgba(10,9,8,0.85), transparent);
+  }
+  .logo{ min-height: 40px; width: 60px;}
+  .nav-logo{ display:flex; align-items:center; gap:10px; font-weight:600; letter-spacing:1px; font-size:15px; }
+  .nav-logo .mark{
+    width:26px; height:26px; border-radius:6px;
+    background:#1653c9;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:'Anton', sans-serif; font-size:15px;
+  }
+  .nav-links{ display:flex; gap:36px; font-size:14px; color:var(--text-mute); }
+  .nav-links a{ transition:color .25s ease; }
+  .nav-links a:hover{ color:var(--gold-soft); }
+  .nav-links a:focus-visible{ outline:1px solid var(--gold); outline-offset:4px; }
+
+  .nav-toggle{
+    display:none;
+    background:none; border:1px solid var(--line);
+    color:var(--text); width:38px; height:38px;
+    border-radius:8px;
+    align-items:center; justify-content:center;
+  }
+  .nav-toggle svg{ width:18px; height:18px; }
+
+  .mobile-menu{
+    position:fixed; top:0; right:0; z-index:99;
+    height:100vh; width:min(78vw, 300px);
+    background:var(--bg-3);
+    border-left:1px solid var(--line);
+    display:flex; flex-direction:column;
+    gap:8px;
+    padding:100px 28px 28px;
+    transform:translateX(100%);
+    transition:transform .35s cubic-bezier(.22,1,.36,1);
+  }
+  .mobile-menu.open{ transform:translateX(0); }
+  .mobile-menu a{
+    font-size:16px; padding:14px 0;
+    border-bottom:1px solid var(--line);
+    color:var(--text-mute);
+  }
+  .mobile-menu a:hover{ color:var(--gold-soft); }
+
+  @media (max-width:640px){
+    .nav-toggle{ display:flex; }
+  }
+
+  /* ============ HERO ============ */
+  .hero{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    overflow:hidden;
+    padding:140px 24px 80px;
+  }
+
+  .spotlight{
+    position:absolute;
+    top:-20%; left:50%;
+    transform:translateX(-50%);
+    width:900px; height:900px;
+    background:radial-gradient(ellipse at center, rgba(232,194,122,0.16) 0%, rgba(232,194,122,0.05) 35%, transparent 65%);
+    pointer-events:none;
+  }
+
+  .filmstrip{
+    position:absolute;
+    top:0; bottom:0;
+    width:120px;
+    opacity:0.18;
+    background:
+      repeating-linear-gradient(180deg, #3a342a 0 60px, #221f1a 60px 120px);
+    -webkit-mask-image: linear-gradient(180deg, transparent, black 15%, black 85%, transparent);
+            mask-image: linear-gradient(180deg, transparent, black 15%, black 85%, transparent);
+  }
+  .filmstrip::before, .filmstrip::after{
+    content:'';
+    position:absolute;
+    top:0; bottom:0;
+    width:14px;
+    background-image: repeating-linear-gradient(180deg, var(--bg) 0 10px, transparent 10px 30px);
+  }
+  .filmstrip::before{ left:8px; }
+  .filmstrip::after{ right:8px; }
+  .filmstrip.left{ left:-30px; transform:rotate(4deg); }
+  .filmstrip.right{ right:-30px; transform:rotate(-4deg); }
+
+  .kicker{
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--gold-soft); margin-bottom:22px; z-index:2;
+  }
+  .kicker .dot{ width:6px; height:6px; border-radius:50%; background:var(--gold); }
+
+  .hero h1{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    text-transform:uppercase;
+    line-height:0.92;
+    font-size:clamp(48px, 9vw, 128px);
+    letter-spacing:1px;
+    color:var(--text);
+    z-index:2;
+  }
+  .hero h1 span{ color:var(--gold-soft); }
+
+  .hero-sub{
+    max-width:520px;
+    margin:26px 0 40px;
+    color:var(--text-mute);
+    font-size:16px;
+    line-height:1.6;
+    z-index:2;
+  }
+
+  .cta-pill{
+    z-index:2;
+    display:inline-flex; align-items:center; gap:10px;
+    background:transparent;
+    color:var(--gold-soft);
+    border:1px solid var(--gold-dim);
+    padding:15px 30px;
+    border-radius:999px;
+    font-size:14px; font-weight:500;
+    box-shadow:0 0 24px rgba(232,194,122,0.18);
+    transition:box-shadow .3s ease, border-color .3s ease, transform .2s ease;
+  }
+  .cta-pill:hover{
+    box-shadow:0 0 36px rgba(232,194,122,0.32);
+    border-color:var(--gold);
+    transform:translateY(-1px);
+  }
+  .cta-pill:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+  .cta-pill svg{ width:15px; height:15px; }
+
+  .chair{
+    z-index:2;
+    margin-top:70px;
+    opacity:0.92;
+  }
+
+  /* ============ SECTION SHARED ============ */
+  section.block{ padding:130px 0; position:relative; }
+  .section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:40px;
+    margin-bottom:70px;
+    flex-wrap:wrap;
+  }
+  .eyebrow{
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--gold); margin-bottom:18px; font-weight:600;
+  }
+  .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--gold); }
+  .section-head h2{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    text-transform:uppercase;
+    font-size:clamp(36px, 5vw, 58px);
+    letter-spacing:0.5px;
+  }
+  .section-head p{
+    max-width:340px;
+    color:var(--text-mute);
+    font-size:15px;
+    line-height:1.7;
+  }
+
+  /* ============ TOOLS ============ */
+  .tools-bg{ background:var(--bg-2); }
+  .tools-perspective{
+    perspective:1600px;
+  }
+  .tools-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:22px;
+    transform-style:preserve-3d;
+    transition:transform .2s ease-out;
+    will-change:transform;
+  }
+  .tool-card{
+    position:relative;
+    background:linear-gradient(160deg, var(--bg-3), var(--bg-2));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:28px 22px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    min-height:150px;
+    transition:border-color .3s ease, box-shadow .3s ease, transform .2s ease;
+    will-change:transform;
+  }
+  .tool-card:hover{
+    transform:translateZ(28px);
+  }
+  .tool-card::before{
+    content:attr(data-index);
+    position:absolute;
+    top:14px; right:16px;
+    font-size:12px;
+    color:var(--text-faint);
+  }
+  .tool-card .icon{
+    width:44px; height:44px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Anton', sans-serif;
+    font-size:20px;
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:10px;
+  }
+  .tool-card .name{ font-size:15px; font-weight:500; color:var(--text); }
+  .tool-card:hover{
+    border-color:var(--gold);
+    box-shadow:0 0 30px #ffdb8c47;
+  }
+  .tool-card:focus-within{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  @media (max-width:900px){
+    .tools-grid{ grid-template-columns:repeat(2, 1fr); }
+  }
+  .iconB{
+    max-width: 120px;
+  }
+  .iconC{
+    max-width: 140px;
+  }
+
+  /* ============ PORTFOLIO ============ */
+  /* ============ PORTFOLIO ============ */
+  .portfolio-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    grid-template-rows:auto auto;
+    gap:20px;
+  }
+  .proj-card{
+    position:relative;
+    border-radius:16px;
+    overflow:hidden;
+    min-height:420px;
+    display:flex;
+    align-items:flex-end;
+    border:1px solid var(--line);
+    background-size:110% auto;
+    background-position:center;
+    isolation:isolate;
+    transition:transform .45s cubic-bezier(.22,1,.36,1), box-shadow .45s ease, border-color .35s ease, background-size .6s cubic-bezier(.22,1,.36,1);
+  }
+  .proj-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 20px 50px rgba(0,0,0,0.5);
+    border-color:var(--gold-dim);
+    background-size:122% auto;
+  }
+  .proj-card.featured:hover{
+    border-color:var(--red);
+    box-shadow:0 20px 60px rgba(217,67,46,0.32);
+  }
+  .proj-card::before{
+    content:'';
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.88) 92%);
+    z-index:0;
+    transition:background .35s ease;
+  }
+  .proj-card:hover::before{
+    background:linear-gradient(180deg, rgba(0,0,0,0.15) 20%, rgba(0,0,0,0.94) 92%);
+  }
+  .proj-card.featured{
+    grid-column: span 1;
+    border-color:var(--red);
+    box-shadow:0 0 40px rgba(217,67,46,0.22);
+  }
+  .proj-card.wide{ grid-column: span 1; min-height:340px; }
+  .portfolio-grid .row2{ grid-column: span 1; }
+ 
+  .proj-card .play{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:56px; height:56px; border-radius:50%;
+    background:rgba(255,255,255,0.92);
+    display:flex; align-items:center; justify-content:center;
+    z-index:1;
+    transition:transform .3s cubic-bezier(.22,1,.36,1), background .3s ease;
+  }
+  .proj-card:hover .play{ transform:translate(-50%,-50%) scale(1.15); background:#fff; }
+  .proj-card .play svg{ width:18px; height:18px; margin-left:2px; }
+ 
+  .proj-body{
+    position:relative;
+    z-index:1;
+    padding:26px 26px 24px;
+    width:100%;
+  }
+  .proj-body > *{ transition:transform .4s cubic-bezier(.22,1,.36,1); }
+  .proj-card:hover .proj-body > *{ transform:translateY(-4px); }
+  .tag{
+    display:inline-block;
+    font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--red); border:1px solid var(--red-dim);
+    background:rgba(217,67,46,0.1);
+    padding:5px 12px; border-radius:999px;
+    margin-bottom:14px; font-weight:600;
+    transition:background .3s ease, border-color .3s ease;
+  }
+  .proj-card:hover .tag{ background:rgba(217,67,46,0.22); border-color:var(--red); }
+  .proj-body h3{
+    font-family:'Playfair Display', serif;
+    font-size:26px; font-weight:600;
+    margin-bottom:8px;
+    letter-spacing:0.5px;
+  }
+  .proj-body p{
+    font-size:13.5px; color:var(--text-mute); line-height:1.55;
+    max-width:280px; margin-bottom:16px;
+  }
+  .watch-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    border:1px solid var(--line);
+    padding:10px 16px; border-radius:8px;
+    color:var(--text);
+    transition:border-color .25s ease, background .25s ease, gap .25s ease;
+  }
+  .proj-card:hover .watch-btn{ border-color:var(--gold); background:rgba(232,194,122,0.1); gap:10px; }
+  .watch-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+  .watch-btn svg{ width:12px; height:12px; transition:transform .25s ease; }
+  .proj-card:hover .watch-btn svg{ transform:translate(2px,-2px); }
+ 
+  @media (max-width:900px){
+    .portfolio-grid{ grid-template-columns:1fr; }
+    .proj-card, .proj-card.featured, .proj-card.wide{ grid-column:span 1; }
+  }
+ 
+  .proj-card{ cursor:pointer; }
+ 
+  .video-modal{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(5,4,3,0.92);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+    opacity:0; pointer-events:none;
+    transition:opacity .3s ease;
+  }
+  .video-modal.open{ opacity:1; pointer-events:auto; }
+  .modal-frame{
+  width:100%; max-width:960px;
+  aspect-ratio:16/9;
+  background:#000;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,0.6);
+  transform:scale(0.96);
+  transition:transform .3s ease;
+  position:relative;
+}
+.modal-frame.vertical{
+  max-width:400px;
+  aspect-ratio:9/16;
+}
+.video-modal.open .modal-frame{ transform:scale(1); }
+#modalPlayer{ position:absolute; inset:0; width:100%; height:100%; }
+.modal-frame iframe{ width:100%; height:100%; border:0; display:block; }
+  .modal-frame iframe{ width:100%; height:100%; border:0; display:block; }
+  .modal-close{
+    position:absolute; top:24px; right:24px;
+    width:42px; height:42px; border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    border:1px solid var(--line);
+    color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .25s ease, border-color .25s ease;
+  }
+  .modal-close:hover{ background:rgba(255,255,255,0.16); border-color:var(--gold); }
+  .modal-close svg{ width:18px; height:18px; }
+ 
+  footer{
+    padding:50px 0;
+    text-align:center;
+    color:var(--text-faint);
+    font-size:13px;
+    border-top:1px solid var(--line);
+  }
+ 
+  /* ============ RESPONSIVE ============ */
+  @media (max-width:900px){
+    .wrap{ padding:0 24px; }
+    nav{ padding:18px 20px; }
+    section.block{ padding:90px 0; }
+    .section-head{ margin-bottom:44px; }
+    .portfolio-grid{
+      grid-template-columns:1fr;
+    }
+    .proj-card, .proj-card.featured, .proj-card.wide{ grid-column:span 1 !important; }
+    .proj-card{ min-height:340px; background-size:cover; }
+    .proj-card:hover{ background-size:cover; }
+  }
+ 
+  @media (max-width:768px){
+    .nav-links{ gap:20px; font-size:13px; }
+  }
+ 
+  @media (max-width:640px){
+    nav{ padding:16px 18px; }
+    .nav-logo{ font-size:13px; }
+    .nav-links{ display:none; }
+ 
+    .hero{ min-height:auto; padding:120px 18px 70px; }
+    .filmstrip{ width:56px; opacity:0.1; }
+    .hero-sub{ font-size:14.5px; padding:0 8px; }
+    .cta-pill{ padding:13px 24px; font-size:13px; }
+ 
+    .wrap{ padding:0 18px; }
+    section.block{ padding:64px 0; }
+    .section-head{
+      flex-direction:column;
+      align-items:flex-start;
+      gap:16px;
+    }
+    .section-head p{ max-width:none; }
+ 
+    .tools-grid{
+      grid-template-columns:repeat(2, 1fr);
+      gap:14px;
+    }
+    .tool-card{ min-height:120px; padding:20px 14px; }
+    .tool-card .name{ font-size:13px; text-align:center; }
+ 
+    .proj-card{ min-height:300px; }
+    .proj-body{ padding:20px 18px 18px; }
+    .proj-body h3{ font-size:21px; }
+    .proj-body p{ max-width:none; font-size:13px; }
+  }
+ 
+  @media (max-width:380px){
+    .tools-grid{ grid-template-columns:repeat(2, 1fr); gap:10px; }
+    .hero h1{ font-size:clamp(38px, 12vw, 60px); }
+  }
+ 
+  @media (hover:none) and (pointer:coarse){
+    .tools-grid{ transform:none !important; }
+    .tool-card:hover{ transform:none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo"><img class="logo" src="Logo3.png" alt=""></div>
+  <div class="nav-links">
+    <a href="#tools">Tools</a>
+    <a href="#work">Work</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <button class="nav-toggle" id="navToggle" aria-label="Відкрити меню" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#tools">Tools</a>
+  <a href="#work">Work</a>
+  <a href="#contact">Contact</a>
+</div>
+
+<section class="hero">
+  <div class="spotlight" aria-hidden="true"></div>
+  <div class="filmstrip left" aria-hidden="true"></div>
+  <div class="filmstrip right" aria-hidden="true"></div>
+
+  <div class="kicker"><span class="dot" aria-hidden="true"></span> AI Video Creator</div>
+  <h1>Maksym —<br><span>AI Video Creator</span></h1>
+  <p class="hero-sub">Знімаю, монтую та оживляю історії за допомогою нейромереж — від ідеї до кінематографічного кадру.</p>
+
+  <a class="cta-pill" href="#work">
+    Дивитись роботи
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </a>
+</section>
+
+<section id="tools" class="block tools-bg">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span class="dot" aria-hidden="true"></span>Expertise</div>
+        <h2>AI Tools</h2>
+      </div>
+      <p>Використовую передові AI-інструменти для ідеації, створення, монтажу та фінального рендеру кінематографічного контенту.</p>
+    </div>
+
+    <div class="tools-perspective" id="toolsPerspective">
+      <div class="tools-grid" id="toolsGrid">
+        <div class="tool-card" data-index="01" tabindex="0"><img class="iconB" src="1.png" alt=""><div class="name">GPT</div></div>
+        <div class="tool-card" data-index="02" tabindex="0"><img class="iconB" src="2.png" alt=""><div class="name">Kling</div></div>
+        <div class="tool-card" data-index="03" tabindex="0"><img class="iconB" src="3.png" alt=""><div class="name">Veo</div></div>
+        <div class="tool-card" data-index="04" tabindex="0"><img class="iconB" src="4.png" alt=""><div class="name">Higgsfield</div></div>
+        <div class="tool-card" data-index="05" tabindex="0"><img class="iconC" src="5.png" alt=""><div class="name">CapCut</div></div>
+        <div class="tool-card" data-index="06" tabindex="0"><img class="iconC" src="6.png" alt=""><div class="name">ElevenLabs</div></div>
+        <div class="tool-card" data-index="07" tabindex="0"><img class="iconC" src="7.png" alt=""><div class="name">Midjourney</div></div>
+        <div class="tool-card" data-index="08" tabindex="0"><img class="iconB" src="8.png" alt=""><div class="name">Grok</div></div>
+       
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="work" class="block">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow"><span class="dot" aria-hidden="true"></span>Work</div>
+        <h2>Featured Projects</h2>
+      </div>
+      <p>Добірка робіт, що відображає підхід до візуальної розповіді та кінематографічної якості.</p>
+    </div>
+ 
+    <div class="portfolio-grid">
+      <div class="proj-card" data-yt="aY_jrt0-iuc" data-ratio="16:9" style="background-image:linear-gradient(160deg,#2a2f38,#0e1013)">
+       
+        <div class="proj-body">
+          <span class="tag">Architectural film</span>
+          <h3>Elevation</h3>
+          <p>Кінематографічне дослідження простору, структури та природної гармонії.</p>
+          <span class="watch-btn">Watch project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></span>
+        </div>
+      </div>
+ 
+      <div class="proj-card featured" data-yt="wZ6HOCMot4I" data-ratio="16:9" style="background-image:linear-gradient(160deg,#12131a,#050506)">
+        
+        <div class="proj-body">
+          <span class="tag">Brand film</span>
+          <h3>Beyond</h3>
+          <p>Рекламний фільм, що виходить за межі очікувань і надихає на амбіції.</p>
+          <span class="watch-btn">Watch project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></span>
+        </div>
+      </div>
+ 
+      <div class="proj-card" data-yt="Lknh85sVFvk" data-ratio="16:9" style="background-image:linear-gradient(160deg,#2c2c30,#101012)">
+       
+        <div class="proj-body">
+          <span class="tag">Documentary</span>
+          <h3>Edge of Silence</h3>
+          <p>Інтимна документалка про самотність, стійкість і людський дух.</p>
+          <span class="watch-btn">Watch project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></span>
+        </div>
+      </div>
+ 
+      <div class="proj-card wide row2" data-yt="_bhAhTn_zEE" data-ratio="9:16" style="background-image:linear-gradient(160deg,#18181a,#020202)">
+      
+        <div class="proj-body">
+          <span class="tag">Automotive film</span>
+          <h3>Velocity</h3>
+          <p>Створено для дизайну. Створено для швидкості.</p>
+          <span class="watch-btn">Watch project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></span>
+        </div>
+      </div>
+ 
+      <div class="proj-card wide row2" data-yt="U5l6Ugpl9GQ" data-ratio="9:16" style="background-image:linear-gradient(160deg,#241d16,#0a0705); grid-column:span 2;">
+        
+        <div class="proj-body">
+          <span class="tag">Narrative</span>
+          <h3>The Last Crown</h3>
+          <p>Короткометражка про владу, спадок і ціну величі.</p>
+          <span class="watch-btn">Watch project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></span>
+        </div>
+      </div>
+ 
+      <div class="proj-card" data-yt="afyFP2q3_Lo" data-ratio="9:16" style="background-image:linear-gradient(160deg,#20242c,#0a0c10)">
+        
+        <div class="proj-body">
+          <span class="tag">Short film</span>
+          <h3>Untitled I</h3>
+          <p>Короткий візуальний етюд, знятий та зібраний за допомогою AI-інструментів.</p>
+          <span class="watch-btn">Watch project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></span>
+        </div>
+      </div>
+ 
+      <div class="proj-card" data-yt="P8IAf1XgXUU" data-ratio="9:16" style="background-image:linear-gradient(160deg,#1c1c1e,#08080a)">
+        
+        <div class="proj-body">
+          <span class="tag">Short film</span>
+          <h3>Untitled II</h3>
+          <p>Ще одна кінематографічна замальовка з фокусом на настрій та деталь.</p>
+          <span class="watch-btn">Watch project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+ 
+<div class="video-modal" id="videoModal">
+  <button class="modal-close" id="modalClose" aria-label="Закрити відео">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <div class="modal-frame">
+    <div id="modalPlayer"></div>
+  </div>
+</div>
+
+
+<footer id="contact">© 2026 Maksym. AI Video Creator.</footer>
+
+<script>
+  const navToggle = document.getElementById('navToggle');
+  const mobileMenu = document.getElementById('mobileMenu');
+  if (navToggle && mobileMenu) {
+    navToggle.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', isOpen);
+    });
+    mobileMenu.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
+  const videoModal = document.getElementById('videoModal');
+  const modalPlayer = document.getElementById('modalPlayer');
+  const modalClose = document.getElementById('modalClose');
+  const modalFrame = document.querySelector('.modal-frame');
+
+  function openVideoModal(ytId, ratio){
+    modalFrame.classList.toggle('vertical', ratio === '9:16');
+    modalPlayer.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0" title="Project video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    videoModal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeVideoModal(){
+    videoModal.classList.remove('open');
+    modalPlayer.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  document.querySelectorAll('.proj-card[data-yt]').forEach(card => {
+    card.addEventListener('click', () => openVideoModal(card.dataset.yt, card.dataset.ratio));
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openVideoModal(card.dataset.yt, card.dataset.ratio); }
+    });
+  });
+
+  modalClose.addEventListener('click', closeVideoModal);
+  videoModal.addEventListener('click', (e) => { if (e.target === videoModal) closeVideoModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeVideoModal(); });
+
+  const perspectiveWrap = document.getElementById('toolsPerspective');
+  const grid = document.getElementById('toolsGrid');
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (perspectiveWrap && grid && !prefersReduced) {
+    perspectiveWrap.addEventListener('mousemove', (e) => {
+      const rect = perspectiveWrap.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+      grid.style.transform = `rotateX(${py * -10}deg) rotateY(${px * 10}deg)`;
+    });
+    perspectiveWrap.addEventListener('mouseleave', () => {
+      grid.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    });
+  }
+</script>
+
+</body>
+</html>
